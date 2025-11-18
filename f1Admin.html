@@ -137,18 +137,26 @@
 
         /* Sidebar */
         .sidebar {
-            width: 100%; /* Full width on mobile */
+            width: 260px;
             background: var(--dark-card);
             border-right: 1px solid var(--dark-border);
             padding: 20px 0;
-            position: static; /* Changed from sticky */
-            height: auto; /* Auto height for mobile */
-            overflow-y: visible; /* Changed from auto */
-            transition: all 0.3s ease;
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100vh;
+            z-index: 1001;
+            transform: translateX(-100%);
+            transition: transform 0.3s ease;
+            overflow-y: auto;
+        }
+
+        .sidebar.active {
+            transform: translateX(0);
+            box-shadow: 0 0 25px rgba(0,0,0,0.1);
         }
 
         .sidebar-toggle {
-            display: none;
             position: fixed;
             bottom: 20px;
             left: 20px;
@@ -164,7 +172,7 @@
             align-items: center;
             justify-content: center;
             font-size: 1.2rem;
-            z-index: 99;
+            z-index: 1000;
         }
 
         .sidebar-menu {
@@ -214,11 +222,28 @@
             text-align: center;
         }
 
+        .sidebar-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.4);
+            z-index: 1000;
+        }
+
         /* Main Content */
         .main-content {
             flex: 1;
             padding: 25px;
             overflow-y: auto;
+        }
+
+        .page-content {
+            display: none;
+        }
+        .page-content.active {
+            display: block;
         }
 
         .page-header {
@@ -901,14 +926,22 @@
             }
 
             .sidebar {
-                width: 250px;
-                position: sticky;
-                top: 60px;
-                height: calc(100vh - 60px);
+                transform: translateX(0);
+                position: fixed;
+                top: 0;
+                left: 0;
+                height: 100vh;
+                z-index: 100;
+            }
+
+            .sidebar-toggle {
+                display: none;
             }
 
             .main-content {
                 padding: 25px;
+                margin-left: 260px;
+                width: calc(100% - 260px);
             }
         }
 
@@ -930,30 +963,44 @@
             align-items: center;
             justify-content: center;
             min-height: 100vh;
-            background-color: var(--dark-bg);
+            background: var(--gradient);
+            padding: 20px;
         }
 
         .auth-box {
-            width: 90%;
-            max-width: 400px;
-            background: var(--dark-card);
+            width: 100%;
+            max-width: 420px;
+            background: rgba(255, 255, 255, 0.95);
             padding: 40px;
-            border-radius: 4px;
-            border: 1px solid var(--dark-border);
-            box-shadow: var(--shadow);
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            animation: fadeIn 0.5s ease;
         }
 
         .auth-title {
             text-align: center;
             font-family: 'Poppins', sans-serif;
-            font-size: 1.8rem;
-            margin-bottom: 30px;
+            font-size: 2rem;
+            margin-bottom: 10px;
             color: var(--primary-color);
+            font-weight: 700;
+        }
+
+        .auth-subtitle {
+            text-align: center;
+            color: var(--text-secondary);
+            margin-bottom: 30px;
         }
 
         .auth-btn {
             width: 100%;
-            margin-top: 10px;
+            margin-top: 15px;
+            padding: 12px;
+            font-size: 1rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(40, 116, 240, 0.3);
         }
 
         .auth-switch {
@@ -980,7 +1027,8 @@
         <div class="auth-box">
             <!-- Login Form -->
             <div id="loginForm" class="auth-form">
-                <h2 class="auth-title">Admin Login</h2>
+                <h2 class="auth-title">Welcome Back!</h2>
+                <p class="auth-subtitle">Login to your Aristo Admin account</p>
                 <form>
                     <div class="form-group">
                         <label for="loginEmail">Email</label>
@@ -998,6 +1046,7 @@
             <!-- Register Form -->
             <div id="registerForm" class="auth-form" style="display: none;">
                 <h2 class="auth-title">Create Admin Account</h2>
+                <p class="auth-subtitle">Get started with your new admin panel</p>
                 <form>
                     <div class="form-group">
                         <label for="registerUsername">Username</label>
@@ -1014,6 +1063,30 @@
                     <button type="submit" class="btn btn-primary auth-btn">Create Account</button>
                 </form>
                 <p class="auth-switch">Already have an account? <a href="#" id="showLogin">Login</a></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Manual Payment Modal -->
+    <div id="manualPaymentModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title" id="manualPaymentModalTitle">Manual Payment Details</h2>
+                <button class="modal-close" id="closeManualPaymentModal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="manualPaymentForm">
+                    <div class="form-group">
+                        <label for="manualPaymentDetails">Payment Details</label>
+                        <textarea id="manualPaymentDetails" class="form-control" rows="10"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline" id="cancelManualPaymentBtn">Cancel</button>
+                <button class="btn btn-primary" id="saveManualPaymentBtn">Save Details</button>
             </div>
         </div>
     </div>
@@ -1166,7 +1239,7 @@
             </div>
 
             <!-- Products Page -->
-            <div id="productsPage" class="page-content">
+            <div id="productsPage" class="page-content" style="display: none;">
                 <div class="page-header">
                     <h1 class="page-title">Products</h1>
                     <div class="page-actions">
@@ -1229,7 +1302,7 @@
             </div>
 
             <!-- Categories Page -->
-            <div id="categoriesPage" class="page-content">
+            <div id="categoriesPage" class="page-content" style="display: none;">
                 <div class="page-header">
                     <h1 class="page-title">Categories</h1>
                     <div class="page-actions">
@@ -1263,7 +1336,7 @@
             </div>
 
             <!-- Slider Page -->
-            <div id="sliderPage" class="page-content">
+            <div id="sliderPage" class="page-content" style="display: none;">
                 <div class="page-header">
                     <h1 class="page-title">Slider Images</h1>
                     <div class="page-actions">
@@ -1291,7 +1364,7 @@
             </div>
 
             <!-- Orders Page -->
-            <div id="ordersPage" class="page-content">
+            <div id="ordersPage" class="page-content" style="display: none;">
                 <div class="page-header">
                     <h1 class="page-title">Orders</h1>
                     <div class="page-actions">
@@ -1339,7 +1412,7 @@
             </div>
 
             <!-- Users Page -->
-            <div id="usersPage" class="page-content">
+            <div id="usersPage" class="page-content" style="display: none;">
                 <div class="page-header">
                     <h1 class="page-title">Users</h1>
                     <div class="page-actions">
@@ -1388,7 +1461,7 @@
             </div>
 
             <!-- Coupons Page -->
-            <div id="couponsPage" class="page-content">
+            <div id="couponsPage" class="page-content" style="display: none;">
                 <div class="page-header">
                     <h1 class="page-title">Coupons</h1>
                     <div class="page-actions">
@@ -1420,7 +1493,7 @@
             </div>
 
             <!-- Reviews Page -->
-            <div id="reviewsPage" class="page-content">
+            <div id="reviewsPage" class="page-content" style="display: none;">
                 <div class="page-header">
                     <h1 class="page-title">Reviews</h1>
                     <div class="page-actions">
@@ -1454,7 +1527,7 @@
             </div>
 
             <!-- Analytics Page -->
-            <div id="analyticsPage" class="page-content">
+            <div id="analyticsPage" class="page-content" style="display: none;">
                 <div class="page-header">
                     <h1 class="page-title">Analytics</h1>
                     <div class="page-actions">
@@ -1585,7 +1658,7 @@
             </div>
 
             <!-- Support Page -->
-            <div id="supportPage" class="page-content">
+            <div id="supportPage" class="page-content" style="display: none;">
                 <div class="page-header">
                     <h1 class="page-title">Support Tickets</h1>
                     <div class="page-actions">
@@ -1620,7 +1693,7 @@
             </div>
 
             <!-- Announcements Page -->
-            <div id="announcementsPage" class="page-content">
+            <div id="announcementsPage" class="page-content" style="display: none;">
                 <div class="page-header">
                     <h1 class="page-title">Announcements</h1>
                     <div class="page-actions">
@@ -1651,7 +1724,7 @@
             </div>
 
             <!-- Settings Page -->
-            <div id="settingsPage" class="page-content">
+            <div id="settingsPage" class="page-content" style="display: none;">
                 <div class="page-header">
                     <h1 class="page-title">Settings</h1>
                 </div>
@@ -1660,6 +1733,7 @@
                     <div class="tab active" data-tab="general">General</div>
                     <div class="tab" data-tab="store">Store</div>
                     <div class="tab" data-tab="payment">Payment</div>
+                    <div class="tab" data-tab="manual-payment">Manual Payment</div>
                     <div class="tab" data-tab="legal">Legal</div>
                     <div class="tab" data-tab="social">Social</div>
                 </div>
@@ -1718,7 +1792,7 @@
                                 <div class="form-group">
                                     <label for="currency">Currency</label>
                                     <select id="currency" class="form-control">
-                                        <option value="INR" selected>Indian Rupee (₹)</option>
+                                        <option value="BDT" selected>Bangladeshi Taka (BDT)</option>
                                         <option value="USD">US Dollar ($)</option>
                                         <option value="EUR">Euro (€)</option>
                                     </select>
@@ -1772,6 +1846,19 @@
                             <div class="form-group">
                                 <label for="refundPolicy">Refund Policy</label>
                                 <textarea id="refundPolicy" class="form-control" rows="10">Enter your refund policy content here...</textarea>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Save Changes</button>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="tab-content" id="manual-paymentTab">
+                    <div class="form-container">
+                        <h3>Manual Payment Settings</h3>
+                        <form id="manualPaymentSettingsForm">
+                            <div class="form-group">
+                                <label for="manualPaymentInfo">Manual Payment Information</label>
+                                <textarea id="manualPaymentInfo" class="form-control" rows="10"></textarea>
                             </div>
                             <button type="submit" class="btn btn-primary">Save Changes</button>
                         </form>
@@ -2143,6 +2230,20 @@
             // Sidebar toggle
             sidebarToggle.addEventListener('click', () => {
                 sidebar.classList.toggle('active');
+                if (sidebar.classList.contains('active')) {
+                    const overlay = document.createElement('div');
+                    overlay.className = 'sidebar-overlay';
+                    document.body.appendChild(overlay);
+                    overlay.addEventListener('click', () => {
+                        sidebar.classList.remove('active');
+                        overlay.remove();
+                    });
+                } else {
+                    const overlay = document.querySelector('.sidebar-overlay');
+                    if (overlay) {
+                        overlay.remove();
+                    }
+                }
             });
             
             // Sidebar navigation
@@ -2294,6 +2395,11 @@
                 e.preventDefault();
                 saveSocialSettings();
             });
+
+            document.getElementById('manualPaymentSettingsForm').addEventListener('submit', (e) => {
+                e.preventDefault();
+                saveManualPaymentSettings();
+            });
             
             // Refresh button
             document.getElementById('refreshBtn').addEventListener('click', () => {
@@ -2385,24 +2491,32 @@
                     link.classList.add('active');
                 }
             });
-            
-            // Hide all pages
+
+            // Hide all pages and find the target page
+            let targetPage = null;
             pageContents.forEach(content => {
-                content.style.display = 'none';
+                content.classList.remove('active');
+                if (content.id === page + 'Page') {
+                    targetPage = content;
+                }
             });
-            
-            // Show selected page
-            document.getElementById(page + 'Page').style.display = 'block';
-            
-            // Update current page
+
+            // Show the target page
+            if (targetPage) {
+                targetPage.classList.add('active');
+            }
+
+            // Update current page and load data
             currentPage = page;
-            
-            // Load page-specific data
             loadPageData();
-            
-            // Close sidebar on mobile
-            if (window.innerWidth <= 768) {
+
+            // Close sidebar on mobile after selection
+            if (window.innerWidth < 768) {
                 sidebar.classList.remove('active');
+                const overlay = document.querySelector('.sidebar-overlay');
+                if (overlay) {
+                    overlay.remove();
+                }
             }
         }
 
@@ -2549,6 +2663,11 @@
             const tableBody = document.getElementById('productsTableBody');
             tableBody.innerHTML = '';
             
+            if (products.length === 0) {
+                tableBody.innerHTML = '<tr><td colspan="8" style="text-align: center;">No products found.</td></tr>';
+                return;
+            }
+
             products.forEach(product => {
                 const row = document.createElement('tr');
                 
@@ -2738,6 +2857,11 @@
             const tableBody = document.getElementById('categoriesTableBody');
             tableBody.innerHTML = '';
 
+            if (categories.length === 0) {
+                tableBody.innerHTML = '<tr><td colspan="3" style="text-align: center;">No categories found.</td></tr>';
+                return;
+            }
+
             categories.forEach(category => {
                 const row = document.createElement('tr');
                 row.innerHTML = `
@@ -2842,6 +2966,11 @@
             const tableBody = document.getElementById('sliderTableBody');
             tableBody.innerHTML = '';
 
+            if (sliderImages.length === 0) {
+                tableBody.innerHTML = '<tr><td colspan="3" style="text-align: center;">No slider images found.</td></tr>';
+                return;
+            }
+
             sliderImages.forEach(image => {
                 const row = document.createElement('tr');
                 row.innerHTML = `
@@ -2945,6 +3074,11 @@
         function renderOrders() {
             const tableBody = document.getElementById('ordersTableBody');
             tableBody.innerHTML = '';
+
+            if (orders.length === 0) {
+                tableBody.innerHTML = '<tr><td colspan="8" style="text-align: center;">No orders found.</td></tr>';
+                return;
+            }
             
             orders.forEach(order => {
                 const row = document.createElement('tr');
@@ -3052,6 +3186,11 @@
             const tableBody = document.getElementById('usersTableBody');
             tableBody.innerHTML = '';
             
+            if (users.length === 0) {
+                tableBody.innerHTML = '<tr><td colspan="7" style="text-align: center;">No users found.</td></tr>';
+                return;
+            }
+
             users.forEach(user => {
                 const row = document.createElement('tr');
                 
@@ -3125,21 +3264,24 @@
         function openUserModal(userId = null) {
             const modal = document.getElementById('userModal');
             const title = document.getElementById('userModalTitle');
+            const form = document.getElementById('userForm');
             
             if (userId) {
                 title.textContent = 'Edit User';
-                // Load user data
+                form.dataset.id = userId;
                 const user = users.find(u => u.id === userId);
                 if (user) {
                     document.getElementById('userName').value = user.name;
                     document.getElementById('userEmail').value = user.email;
                     document.getElementById('userPhone').value = user.phone;
                     document.getElementById('userRole').value = user.role.toLowerCase();
-                    // Set other fields...
+                    document.getElementById('userPassword').required = false;
                 }
             } else {
                 title.textContent = 'Add User';
-                document.getElementById('userForm').reset();
+                form.reset();
+                delete form.dataset.id;
+                document.getElementById('userPassword').required = true;
             }
             
             modal.classList.add('active');
@@ -3155,79 +3297,75 @@
             const phone = document.getElementById('userPhone').value;
             const role = document.getElementById('userRole').value;
             const password = document.getElementById('userPassword').value;
+            const userId = document.getElementById('userForm').dataset.id;
             
-            // Validate form
-            if (!name || !email || !password) {
-                showToast('Please fill in all required fields', 'error');
+            if (!name || !email) {
+                showToast('Please fill in name and email', 'error');
                 return;
             }
-            
-            // In a real app, this would save to Firestore
-            showToast('User saved successfully!', 'success');
-            closeUserModal();
-            loadUsers();
-        }
 
-        function editUser(userId) {
-            openUserModal(userId);
+            const userData = {
+                name,
+                email,
+                phone,
+                role,
+                status: 'Active',
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            };
+
+            if (userId) {
+                db.collection("users").doc(userId).set(userData, { merge: true })
+                    .then(() => {
+                        showToast('User updated successfully!', 'success');
+                        closeUserModal();
+                        loadUsers();
+                    });
+            } else {
+                if (!password) {
+                    showToast('Password is required for new users', 'error');
+                    return;
+                }
+                db.collection("users").add(userData)
+                    .then(() => {
+                        showToast('User added successfully!', 'success');
+                        closeUserModal();
+                        loadUsers();
+                    });
+            }
         }
 
         function deleteUser(userId) {
             if (confirm('Are you sure you want to delete this user?')) {
-                // In a real app, this would delete from Firestore
-                showToast('User deleted successfully!', 'success');
-                loadUsers();
+                db.collection("users").doc(userId).delete().then(() => {
+                    showToast('User deleted successfully!', 'success');
+                    loadUsers();
+                });
             }
         }
 
         // Coupons Functions
         function loadCoupons() {
             const tableBody = document.getElementById('couponsTableBody');
-            
-            // Show loading state
             tableBody.innerHTML = '<tr><td colspan="7" style="text-align: center;">Loading coupons...</td></tr>';
-            
-            // In a real app, this would fetch from Firestore
-            // For demo, we'll use static data
-            setTimeout(() => {
-                coupons = [
-                    {
-                        id: '1',
-                        code: 'WELCOME10',
-                        discount: 10,
-                        usageLimit: 100,
-                        used: 45,
-                        validUntil: new Date('2023-12-31'),
-                        status: 'Active'
-                    },
-                    {
-                        id: '2',
-                        code: 'SUMMER20',
-                        discount: 20,
-                        usageLimit: 50,
-                        used: 32,
-                        validUntil: new Date('2023-08-31'),
-                        status: 'Active'
-                    },
-                    {
-                        id: '3',
-                        code: 'FESTIVE25',
-                        discount: 25,
-                        usageLimit: 200,
-                        used: 200,
-                        validUntil: new Date('2023-05-31'),
-                        status: 'Expired'
-                    }
-                ];
-                
+
+            db.collection("coupons").get().then((querySnapshot) => {
+                coupons = [];
+                querySnapshot.forEach((doc) => {
+                    coupons.push({ id: doc.id, ...doc.data() });
+                });
                 renderCoupons();
-            }, 1000);
+            });
         }
 
         function renderCoupons() {
             const tableBody = document.getElementById('couponsTableBody');
             tableBody.innerHTML = '';
             
+            if (coupons.length === 0) {
+                tableBody.innerHTML = '<tr><td colspan="7" style="text-align: center;">No coupons found.</td></tr>';
+                return;
+            }
+
             coupons.forEach(coupon => {
                 const row = document.createElement('tr');
                 
@@ -3307,6 +3445,7 @@
             const discount = document.getElementById('couponDiscount').value;
             const usageLimit = document.getElementById('couponUsageLimit').value;
             const validUntil = document.getElementById('couponValidUntil').value;
+            const couponId = document.getElementById('couponForm').dataset.id;
             
             // Validate form
             if (!code || !discount || !usageLimit || !validUntil) {
@@ -3314,72 +3453,66 @@
                 return;
             }
             
-            // In a real app, this would save to Firestore
-            showToast('Coupon saved successfully!', 'success');
-            closeCouponModal();
-            loadCoupons();
-        }
+            const couponData = {
+                code,
+                discount: parseFloat(discount),
+                usageLimit: parseInt(usageLimit),
+                validUntil: new Date(validUntil),
+                used: 0,
+                status: 'Active'
+            };
 
-        function editCoupon(couponId) {
-            openCouponModal(couponId);
+            if (couponId) {
+                // Update
+                db.collection("coupons").doc(couponId).set(couponData, { merge: true })
+                    .then(() => {
+                        showToast('Coupon updated successfully!', 'success');
+                        closeCouponModal();
+                        loadCoupons();
+                    });
+            } else {
+                // Add
+                db.collection("coupons").add(couponData)
+                    .then(() => {
+                        showToast('Coupon added successfully!', 'success');
+                        closeCouponModal();
+                        loadCoupons();
+                    });
+            }
         }
 
         function deleteCoupon(couponId) {
             if (confirm('Are you sure you want to delete this coupon?')) {
-                // In a real app, this would delete from Firestore
-                showToast('Coupon deleted successfully!', 'success');
-                loadCoupons();
+                db.collection("coupons").doc(couponId).delete().then(() => {
+                    showToast('Coupon deleted successfully!', 'success');
+                    loadCoupons();
+                });
             }
         }
 
         // Reviews Functions
         function loadReviews() {
             const tableBody = document.getElementById('reviewsTableBody');
-            
-            // Show loading state
             tableBody.innerHTML = '<tr><td colspan="7" style="text-align: center;">Loading reviews...</td></tr>';
-            
-            // In a real app, this would fetch from Firestore
-            // For demo, we'll use static data
-            setTimeout(() => {
-                reviews = [
-                    {
-                        id: '1',
-                        product: 'Premium Website Template',
-                        reviewer: 'John Doe',
-                        rating: 5,
-                        review: 'Excellent product! Exactly what I was looking for.',
-                        date: new Date('2023-05-15'),
-                        status: 'Approved'
-                    },
-                    {
-                        id: '2',
-                        product: 'Social Media Graphics Pack',
-                        reviewer: 'Jane Smith',
-                        rating: 4,
-                        review: 'Great quality and easy to use. Highly recommend!',
-                        date: new Date('2023-05-10'),
-                        status: 'Approved'
-                    },
-                    {
-                        id: '3',
-                        product: 'Video Editing Course',
-                        reviewer: 'Mike Johnson',
-                        rating: 4,
-                        review: 'Good value for money. The product met my expectations.',
-                        date: new Date('2023-05-05'),
-                        status: 'Pending'
-                    }
-                ];
-                
+
+            db.collection("reviews").get().then((querySnapshot) => {
+                reviews = [];
+                querySnapshot.forEach((doc) => {
+                    reviews.push({ id: doc.id, ...doc.data() });
+                });
                 renderReviews();
-            }, 1000);
+            });
         }
 
         function renderReviews() {
             const tableBody = document.getElementById('reviewsTableBody');
             tableBody.innerHTML = '';
             
+            if (reviews.length === 0) {
+                tableBody.innerHTML = '<tr><td colspan="7" style="text-align: center;">No reviews found.</td></tr>';
+                return;
+            }
+
             reviews.forEach(review => {
                 const row = document.createElement('tr');
                 
@@ -3456,22 +3589,25 @@
         }
 
         function approveReview(reviewId) {
-            // In a real app, this would update in Firestore
-            showToast('Review approved!', 'success');
-            loadReviews();
+            db.collection("reviews").doc(reviewId).update({ status: 'Approved' }).then(() => {
+                showToast('Review approved!', 'success');
+                loadReviews();
+            });
         }
 
         function rejectReview(reviewId) {
-            // In a real app, this would update in Firestore
-            showToast('Review rejected!', 'info');
-            loadReviews();
+            db.collection("reviews").doc(reviewId).update({ status: 'Rejected' }).then(() => {
+                showToast('Review rejected!', 'info');
+                loadReviews();
+            });
         }
 
         function deleteReview(reviewId) {
             if (confirm('Are you sure you want to delete this review?')) {
-                // In a real app, this would delete from Firestore
-                showToast('Review deleted successfully!', 'success');
-                loadReviews();
+                db.collection("reviews").doc(reviewId).delete().then(() => {
+                    showToast('Review deleted successfully!', 'success');
+                    loadReviews();
+                });
             }
         }
 
@@ -3489,48 +3625,26 @@
         // Support Functions
         function loadSupportTickets() {
             const tableBody = document.getElementById('supportTableBody');
-            
-            // Show loading state
             tableBody.innerHTML = '<tr><td colspan="7" style="text-align: center;">Loading support tickets...</td></tr>';
-            
-            // In a real app, this would fetch from Firestore
-            // For demo, we'll use static data
-            setTimeout(() => {
-                supportTickets = [
-                    {
-                        id: 'TKT-001',
-                        subject: 'Issue with download',
-                        customer: 'John Doe',
-                        priority: 'High',
-                        date: new Date('2023-05-20'),
-                        status: 'Open'
-                    },
-                    {
-                        id: 'TKT-002',
-                        subject: 'Payment not processed',
-                        customer: 'Jane Smith',
-                        priority: 'High',
-                        date: new Date('2023-05-19'),
-                        status: 'In Progress'
-                    },
-                    {
-                        id: 'TKT-003',
-                        subject: 'Product question',
-                        customer: 'Mike Johnson',
-                        priority: 'Medium',
-                        date: new Date('2023-05-18'),
-                        status: 'Resolved'
-                    }
-                ];
-                
+
+            db.collection("supportTickets").get().then((querySnapshot) => {
+                supportTickets = [];
+                querySnapshot.forEach((doc) => {
+                    supportTickets.push({ id: doc.id, ...doc.data() });
+                });
                 renderSupportTickets();
-            }, 1000);
+            });
         }
 
         function renderSupportTickets() {
             const tableBody = document.getElementById('supportTableBody');
             tableBody.innerHTML = '';
             
+            if (supportTickets.length === 0) {
+                tableBody.innerHTML = '<tr><td colspan="7" style="text-align: center;">No support tickets found.</td></tr>';
+                return;
+            }
+
             supportTickets.forEach(ticket => {
                 const row = document.createElement('tr');
                 
@@ -3606,48 +3720,26 @@
         // Announcements Functions
         function loadAnnouncements() {
             const tableBody = document.getElementById('announcementsTableBody');
-            
-            // Show loading state
             tableBody.innerHTML = '<tr><td colspan="6" style="text-align: center;">Loading announcements...</td></tr>';
-            
-            // In a real app, this would fetch from Firestore
-            // For demo, we'll use static data
-            setTimeout(() => {
-                announcements = [
-                    {
-                        id: '1',
-                        title: 'New Product Launch',
-                        message: 'We are excited to announce the launch of our new premium templates collection.',
-                        type: 'info',
-                        date: new Date('2023-05-20'),
-                        status: 'Active'
-                    },
-                    {
-                        id: '2',
-                        title: 'Maintenance Notice',
-                        message: 'Our servers will be under maintenance on May 25, 2023 from 2AM to 4AM.',
-                        type: 'warning',
-                        date: new Date('2023-05-18'),
-                        status: 'Active'
-                    },
-                    {
-                        id: '3',
-                        title: 'Special Offer',
-                        message: 'Get 20% off on all courses this weekend only!',
-                        type: 'success',
-                        date: new Date('2023-05-15'),
-                        status: 'Inactive'
-                    }
-                ];
-                
+
+            db.collection("announcements").get().then((querySnapshot) => {
+                announcements = [];
+                querySnapshot.forEach((doc) => {
+                    announcements.push({ id: doc.id, ...doc.data() });
+                });
                 renderAnnouncements();
-            }, 1000);
+            });
         }
 
         function renderAnnouncements() {
             const tableBody = document.getElementById('announcementsTableBody');
             tableBody.innerHTML = '';
             
+            if (announcements.length === 0) {
+                tableBody.innerHTML = '<tr><td colspan="6" style="text-align: center;">No announcements found.</td></tr>';
+                return;
+            }
+
             announcements.forEach(announcement => {
                 const row = document.createElement('tr');
                 
@@ -3740,6 +3832,7 @@
             const message = document.getElementById('announcementMessage').value;
             const type = document.getElementById('announcementType').value;
             const status = document.getElementById('announcementStatus').value;
+            const announcementId = document.getElementById('announcementForm').dataset.id;
             
             // Validate form
             if (!title || !message) {
@@ -3747,28 +3840,49 @@
                 return;
             }
             
-            // In a real app, this would save to Firestore
-            showToast('Announcement saved successfully!', 'success');
-            closeAnnouncementModal();
-            loadAnnouncements();
-        }
+            const announcementData = {
+                title,
+                message,
+                type,
+                status,
+                date: new Date()
+            };
 
-        function editAnnouncement(announcementId) {
-            openAnnouncementModal(announcementId);
+            if (announcementId) {
+                // Update
+                db.collection("announcements").doc(announcementId).set(announcementData, { merge: true })
+                    .then(() => {
+                        showToast('Announcement updated successfully!', 'success');
+                        closeAnnouncementModal();
+                        loadAnnouncements();
+                    });
+            } else {
+                // Add
+                db.collection("announcements").add(announcementData)
+                    .then(() => {
+                        showToast('Announcement added successfully!', 'success');
+                        closeAnnouncementModal();
+                        loadAnnouncements();
+                    });
+            }
         }
 
         function deleteAnnouncement(announcementId) {
             if (confirm('Are you sure you want to delete this announcement?')) {
-                // In a real app, this would delete from Firestore
-                showToast('Announcement deleted successfully!', 'success');
-                loadAnnouncements();
+                db.collection("announcements").doc(announcementId).delete().then(() => {
+                    showToast('Announcement deleted successfully!', 'success');
+                    loadAnnouncements();
+                });
             }
         }
 
         // Settings Functions
         function loadSettings() {
-            // In a real app, this would fetch from Firestore
-            // For demo, we'll use static values
+            db.collection("settings").doc("manualPayment").get().then((doc) => {
+                if (doc.exists) {
+                    document.getElementById('manualPaymentInfo').value = doc.data().info;
+                }
+            });
         }
 
         function switchTab(tabId) {
@@ -3810,6 +3924,14 @@
         function saveSocialSettings() {
             // In a real app, this would save to Firestore
             showToast('Social settings saved successfully!', 'success');
+        }
+
+        function saveManualPaymentSettings() {
+            const manualPaymentInfo = document.getElementById('manualPaymentInfo').value;
+            db.collection("settings").doc("manualPayment").set({ info: manualPaymentInfo })
+                .then(() => {
+                    showToast('Manual payment settings saved successfully!', 'success');
+                });
         }
 
         // Utility Functions
